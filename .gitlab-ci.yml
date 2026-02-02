@@ -21,6 +21,7 @@ variables:
   DEBIAN_STABLE_IMAGE: debian:trixie-slim
   DOCKER_HOST: tcp://docker:2375
   DOCKER_TLS_CERTDIR: ""
+  DOCKER_AUTH_CONFIG: ${_DOCKER_AUTH_CONFIG}
 
 workflow:
   rules:
@@ -73,18 +74,20 @@ stages:
         GROUP: 8
       - DISTRO: 'opensuse 15'
         GROUP: 9
-      - DISTRO: 'fedora forty'
+      - DISTRO: 'opensuse 16'
         GROUP: 10
-      - DISTRO: 'fedora fortyone'
+      - DISTRO: 'fedora 42'
         GROUP: 11
-      - DISTRO: 'alpine 318'
+      - DISTRO: 'fedora 43'
         GROUP: 12
-      - DISTRO: 'alpine 319'
+      - DISTRO: 'alpine 318'
         GROUP: 13
-      - DISTRO: 'alpine 320'
+      - DISTRO: 'alpine 319'
         GROUP: 14
-      - DISTRO: 'alpine 321'
+      - DISTRO: 'alpine 320'
         GROUP: 15
+      - DISTRO: 'alpine 321'
+        GROUP: 16
 
 default:
   retry: 2
@@ -97,6 +100,7 @@ functional_test:
   tags:
     - oci-fixed-amd
   before_script:
+    - *prepare_build
     - . .ci/helpers.sh
   script:
     - prepare_to_run_functional_tests
@@ -112,6 +116,14 @@ functional_test:
     reports:
       junit:
         - kasmvnc-functional-tests/report/*.xml
+  rules:
+    # Allow functional tests to fail on feature branches.
+    - if: '$CI_COMMIT_REF_NAME =~ /^feature\//'
+      allow_failure: true
+      when: on_success
+
+    # Fail pipeline on all other branches, if functional tests fail.
+    - when: on_success
 
 build_www:
   stage: www
@@ -182,7 +194,7 @@ build_arm64:
   parallel:
     *parallel_matrix
 
-    
+
 run_test_amd64:
   stage: run_test
   image: $DEBIAN_STABLE_IMAGE
@@ -239,7 +251,7 @@ run_test_arm64:
         - run_test/*.xml
   parallel:
     *parallel_matrix
-    
+
 spec_test:
   stage: test
   image: $DEBIAN_STABLE_IMAGE
